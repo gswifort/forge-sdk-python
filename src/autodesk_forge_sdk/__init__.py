@@ -10,3 +10,4 @@ from .docm import DocumentManagementClient, Action, Subject
 from .accm import AccountManagementClient, AccountManagementClient_BIM360
 from .webhooks import WebhooksClient
 from .relationship import RelationshipManagementClient
+from .model_coordination import ModelSetClient, ClashTestClient
