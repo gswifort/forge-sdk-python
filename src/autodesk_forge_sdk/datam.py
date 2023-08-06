@@ -604,7 +604,34 @@ class DataManagementClient(BaseOAuthClient):
         endpoint = f"{DATA_MANAGEMENT_PROJECT_URL}/hubs/{hub_id}/projects"
         return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)
 
-    def get_folder(self, project_id: str, folder_id: str, filter_id: str=None) -> Dict:
+    def get_top_folders(self, hub_id: str, project_id: str) -> List:
+        """
+        Returns the details of the highest level folders the user has access to for a given project. The user must have at least read access to the folders.
+
+        If the user is a Project Admin, it returns all top level folders in the project. Otherwise, it returns all the highest level folders in the folder hierarchy the user has access to.
+
+        Note that when users have access to a folder, access is automatically granted to its subfolders.
+
+        **Documentation**:
+            https://aps.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-project_id-topFolders-GET/
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+            project_id (str): ID of a project to list folders for.
+
+        Returns:
+            list(dict): List of folders parsed from the response JSON.
+        """
+        headers = {"Content-Type": "application/vnd.api+json"}
+        params = {}
+        endpoint = f"{DATA_MANAGEMENT_PROJECT_URL}/hubs/{hub_id}/projects/{project_id}/topFolders"
+        return self._get_paginated(
+            endpoint, scopes=READ_SCOPES, headers=headers, params=params
+        )
+
+    def get_folder(
+        self, project_id: str, folder_id: str, filter_id: str = None
+    ) -> Dict:
         """
         Returns the folder by ID for any folder within a given project. All folders or sub-folders
         within a project are associated with their own unique ID, including the root folder.
@@ -664,6 +691,30 @@ class DataManagementClient(BaseOAuthClient):
             params["filter[id]"] = filter_id
         endpoint = f"{DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/folders/{folder_id}/contents"
         return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)
+    
+    def get_project_nested_content(self, hub_id: str, project_id: str):
+        """
+        Returns all content items of project folders with type "items."
+
+        Args:
+            hub_id (str): ID of a hub.
+            project_id (str): ID of a project to search the folders.
+
+        Returns:
+            list(dict): List of items parsed from the response JSON.
+        """
+        top_folders = self.get_top_folders(hub_id=hub_id, project_id=project_id)
+
+        def get_nested_items(contents):
+            for item in contents:
+                if item["type"] == "folders":
+                    yield from get_nested_items(
+                        self.get_content(project_id=project_id, folder_id=item["id"])
+                    )
+                elif item["type"] == "items":
+                    yield item
+
+        return get_nested_items(top_folders)
 
     def get_item(self, project_id: str, item_id: str) -> Dict:
         """
