@@ -52,8 +52,8 @@ class ClashTestClient(BaseOAuthClient):
             scopes=[Scope.DATA_READ],
         ).json()
 
-        clashes = self._get(resources["resources"][0]["url"])
-        # instances = self._get(resources["resources"][1]["url"])
-        # documents = self._get(resources["resources"][2]["url"])
+        # clashes = self._get(resources["resources"][0]["url"])
+        instances = self._get(resources["resources"][1]["url"])
+        documents = self._get(resources["resources"][2]["url"])
 
-        return clashes
+        return instances.content, documents.content
